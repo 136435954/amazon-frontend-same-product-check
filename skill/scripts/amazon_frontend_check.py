@@ -395,8 +395,18 @@ async function ensurePage() {
     let tabs = [];
     try { tabs = await task.tabs(); } catch (e) {}
     if (tabs && tabs.length) {
-      const hit = tabs.find((x) => x.page);
-      if (hit && hit.page) return hit.page;
+      // 只留一个工作页：优先已打开网页的活动页，其次任意 http 页，最后第一个；
+      // 其余（多为历史 run 留下的 about:blank）全部关掉，避免把标签页预算撑满
+      const keep = tabs.find((t) => t.active && t.url && t.url.startsWith("http"))
+                || tabs.find((t) => t.url && t.url.startsWith("http"))
+                || tabs[0];
+      let closed = 0;
+      for (const t of tabs) {
+        if (t === keep) continue;
+        try { await t.page.close(); closed++; } catch (e) {}
+      }
+      if (closed) console.log(JSON.stringify({ stage: "tabs-cleanup", closed, left: tabs.length - closed }));
+      if (keep && keep.page) return keep.page;
     }
     try { const np = await task.newPage(); if (np) return np; } catch (e) {}
     await new Promise((r) => setTimeout(r, 1200));
