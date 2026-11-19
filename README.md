@@ -233,6 +233,9 @@ ego 空间里没有可用标签页，或标签页预算已满（`Page budget rea
 **Q：抓到的广告位数是 0，但页面上明明有 Sponsored？**
 先跑证据链：`sp-sponsored-result`、`cel_widget_id` 含 SP、`.AdHolder`、aria 计数，任一项非 0 却判 0 就是漏判。对照 `references\dom-recipes.md` 核对当前版式。
 
+**Q：我写了 `judgments.json`，但 CSV 那行还是「待复核」？**
+键名必须是工作表里的**原词逐字**（含空格）。写成 `cervical_pillow` 而表里是 `cervical pillow` 会静默匹配不上。re-run 后核对「已完成 N」的数量。
+
 **Q：同一关键词两次跑，广告数不一样？**
 正常。亚马逊按请求动态下发广告，跨词比较请用同一批跑出来的数。
 

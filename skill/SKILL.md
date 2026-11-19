@@ -122,3 +122,4 @@ python scripts/amazon_frontend_check.py --workbook <xlsx> --site US --target <�
 - PowerShell 无 heredoc，长 JS 写 `.mjs` 再 `ego-browser nodejs -e "await import('file:///…')"`。脚本内不能用 `window/document`，必须放 `page.evaluate()`。
 - 滚动后顶部搜索框可能不可见，点击会报 `element is not visible in the viewport`；搜索前先 `window.scrollTo(0,0)`。
 - 广告数与结果数逐次波动（亚马逊按请求动态下发），同一词两次跑出 11 和 19 属正常；跨词比较要用同一批跑出来的数。
+- `judgments.json` 的键必须是工作表里的**原词逐字**（空格、大小写、连字符都算），写成 `cervical_pillow` 会静默匹配不上，CSV 里那行一直停在 `待复核`。写完后核对"已完成"数量是否符合预期。
