@@ -1,0 +1,13 @@
+# 运行产物
+work/
+*.csv
+*.xlsx
+*.log
+__pycache__/
+*.pyc
+
+# 编辑与系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
