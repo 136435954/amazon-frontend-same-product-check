@@ -362,20 +362,25 @@ const CFG = __CFG__;
 
 async function openTask() {
   const name = CFG.space;
+  // 接管已有空间的顺序很重要：agent 空间用 taskSpace(id) 拿不到标签页，必须 claim
+  async function claim(id) {
+    try { const t = await claimTaskSpace(id); const tabs = await t.tabs(); if (tabs && tabs.length) return t; } catch (e) {}
+    try { const t = await takeOverTaskSpace(id); const tabs = await t.tabs(); if (tabs && tabs.length) return t; } catch (e) {}
+    try { const t = await taskSpace(id); const tabs = await t.tabs(); if (tabs && tabs.length) return t; } catch (e) {}
+    try { return await claimTaskSpace(id); } catch (e) {}
+    try { return await takeOverTaskSpace(id); } catch (e) {}
+    try { return await taskSpace(id); } catch (e) {}
+    return null;
+  }
   try {
     const spaces = await listTaskSpaces();
     // 名字可能在被接管后变空，按“已有空间里第一个可用的”兜底查找
     const found = spaces.find((s) => s.name === name) ||
-                  spaces.find((s) => s.name && s.name.startsWith(name.slice(0, 16)));
+                  spaces.find((s) => s.name && s.name.startsWith(name.slice(0, 16))) ||
+                  spaces.find((s) => !s.name);
     if (found) {
-      if (found.ownership === "user") return await claimTaskSpace(found.id);
-      if (found.ownership === "agentDelegatedToUser") return await takeOverTaskSpace(found.id);
-      return await taskSpace(found.id);
-    }
-    const solo = spaces.find((s) => !s.name);
-    if (solo) {
-      if (solo.ownership === "user") return await claimTaskSpace(solo.id);
-      if (solo.ownership === "agentDelegatedToUser") return await takeOverTaskSpace(solo.id);
+      const t = await claim(found.id);
+      if (t) return t;
     }
   } catch (e) {}
   try { return await taskSpace(name, CFG.profileId ? { profileId: CFG.profileId } : undefined); }
@@ -383,18 +388,20 @@ async function openTask() {
 }
 
 const task = await openTask();
-// ego 空间可能是空的（无标签页）：必须显式 newPage 并 adopt，否则 page 代理会在首次使用时抛错
+// 取页面：空间里的标签页已被跟踪，直接用 tabs[i].page（adopt 只接受未跟踪页面，会抛错）；
+// 空间有页时绝不 newPage——标签页预算可能已满（Page budget reached）会直接失败。
 async function ensurePage() {
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 3; i++) {
     let tabs = [];
     try { tabs = await task.tabs(); } catch (e) {}
     if (tabs && tabs.length) {
-      try { return await task.adopt(tabs[0].page); } catch (e) {}
+      const hit = tabs.find((x) => x.page);
+      if (hit && hit.page) return hit.page;
     }
-    try { await task.newPage(); } catch (e) {}
-    await new Promise((r) => setTimeout(r, 1500));
+    try { const np = await task.newPage(); if (np) return np; } catch (e) {}
+    await new Promise((r) => setTimeout(r, 1200));
   }
-  throw new Error("ego 空间未就绪：无法创建或获取标签页");
+  throw new Error("ego 空间未就绪：没有可用标签页，且新建失败（可能标签页预算已满）");
 }
 const page = await ensurePage();
 const OUT = { location: { ok: false, text: "", attempts: [] }, results: [], blocked: false };

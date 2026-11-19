@@ -224,8 +224,8 @@ work\
 
 ## 11. 常见问题
 
-**Q：报 `page label not found: p1` / `Managed Pages in task space 0: none`？**
-ego 空间里没有标签页。脚本已内置 `ensurePage()`（先 `task.tabs()`，没有就 `task.newPage()` 再 `adopt`）；若仍报错，先结束残留的 ego 空间再重跑。
+**Q：报 `page label not found: p1` / `Managed Pages in task space 0: none` / `ego 空间未就绪：没有可用标签页`？**
+ego 空间里没有可用标签页，或标签页预算已满（`Page budget reached (8/8)`）。脚本内置 `ensurePage()`：优先复用 `task.tabs()` 里已有的页面，只有完全没有页面时才新建。注意两个 ego 的坑——`task.adopt()` 只接受**未跟踪**页面，对已被空间跟踪的标签页会报 `requires an untracked page`；旧版 `taskSpace(id)` 接管 agent 空间时可能拿不到标签页，需要用 `claimTaskSpace(id)`。若仍失败，先结束残留的 ego 空间再重跑。
 
 **Q：报 `dDefaultResolve` 之类模块解析错误？**
 `--work-dir` 用了相对路径。改成绝对路径。
